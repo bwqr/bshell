@@ -4,5 +4,6 @@ CMakeScripts
 Testing
 Makefile
 cmake-build-debug
-
+cmake_install.cmake
+cmpeshell
 .idea
