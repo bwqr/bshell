@@ -1,59 +1,53 @@
-#include <cstring>
-#include <sys/types.h>
 #include <unistd.h>
-#include <sys/wait.h>
-#include <fcntl.h>
+#include <cstring>
 #include "command.h"
-#include "pipe_options.h"
+#include "history.h"
 
-command::command(std::string exec, std::vector<std::string> args, const struct pipe_options &pipe_options) {
-    this->exec = std::move(exec);
-    this->args = new char *[args.size() + 1];
-    for (int i = 0; i < args.size(); ++i) {
-        this->args[i] = new char[args[i].size()];
-        this->args[i] = strcpy(this->args[i], args[i].c_str());
+command::command(const std::string &exec, const std::vector<std::string> &args) {
+    this->exec = exec;
+    this->argv = args;
+}
+
+void command::execute_command() {
+
+    std::string command;
+
+    if(exec == "listdir") {
+        command = "ls";
+    } else if(exec == "printfile") {
+        command = "cat";
+    } else if(exec == "currentpath") {
+        command = "pwd";
+    } else if(exec == "footprint") {
+        hist.print();
+        exit(0);
     }
-    //null terminated args
-    this->args[args.size()] = nullptr;
+    else {
+        command = exec;
+    }
 
-    this->pipe_options = pipe_options;
+    auto exec_argv = new char *[argv.size() + 1];
+
+    for (int j = 0; j < argv.size(); ++j) {
+        exec_argv[j] = new char[argv[j].size()];
+
+        strcpy(exec_argv[j], argv[j].c_str());
+    }
+
+    exec_argv[argv.size()] = nullptr;
+
+    execvp(exec.c_str(), exec_argv);
 }
 
-void command::exec_command() {
-    child_pid = fork();
-
-    if (child_pid < -1) {
-        std::cout << "An error occurred" << std::endl;
-    } else if (child_pid == 0) {
-        if (pipe_options.enabled) {
-            if (pipe_options.receiver) {
-//                close(pipe_options.ofd);
-//                std::cerr << exec << " " << "receiving to " << pipe_options.ifd << std::endl;
-                if(dup2(pipe_options.ifd, STDIN_FILENO) == -1) {
-                    std::cerr << "Dup3 error on receiver " << errno;
-                }
-            } else {
-//                close(pipe_options.ifd);
-//                std::cerr << exec << " " << "sending to " << pipe_options.ofd << std::endl;
-                if(dup2(pipe_options.ofd, STDOUT_FILENO) == -1) {
-                    std::cerr << "Dup3 error on sender" << errno;
-                }
-            }
-        }
-
-        execvp(exec.c_str(), args);
-    } else {
+void command::set_ifd(const int &ifd) {
+    if(dup2(ifd, STDIN_FILENO) == -1) {
+        std::cerr << "Error while dup2 on set_ifd" << std::endl;
     }
 }
 
-void command::wait_command() {
-    wait(&child_pid);
-}
-
-void command::close_pipes() {
-    if(pipe_options.enabled) {
-        close(pipe_options.ifd);
-        close(pipe_options.ofd);
+void command::set_ofd(const int &ofd) {
+    if(dup2(ofd, STDOUT_FILENO) == -1) {
+        std::cerr << "Error while dup2 on set_ifd" <<std::endl;
     }
 }
 

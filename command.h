@@ -4,23 +4,19 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include "pipe_options.h"
 
 class command {
 public:
-    explicit command(std::string exec, std::vector<std::string> args, const struct pipe_options &pipe_options);
+    explicit command(const std::string &exec, const std::vector<std::string> &args);
 
-    void exec_command();
+    void execute_command();
 
-    void close_pipes();
+    static void set_ifd(const int &ifd);
 
-    void wait_command();
-
+    static void set_ofd(const int &ofd);
 private:
     std::string exec;
-    pid_t child_pid;
-    struct pipe_options pipe_options;
-    char **args;
+    std::vector<std::string> argv;
 };
 
 

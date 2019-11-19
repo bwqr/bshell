@@ -1,0 +1,6 @@
+#ifndef CMPESHELL_DEFS_H
+#define CMPESHELL_DEFS_H
+
+#define MAX_HIST 15
+
+#endif //CMPESHELL_DEFS_H
