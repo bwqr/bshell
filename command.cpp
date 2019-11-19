@@ -2,34 +2,42 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <fcntl.h>
 #include "command.h"
+#include "pipe_options.h"
 
-command::command(std::string exec, std::vector<std::string> args, const int *fd, bool receiver) {
+command::command(std::string exec, std::vector<std::string> args, const struct pipe_options &pipe_options) {
     this->exec = std::move(exec);
-    this->args = new char *[args.size()];
+    this->args = new char *[args.size() + 1];
     for (int i = 0; i < args.size(); ++i) {
         this->args[i] = new char[args[i].size()];
         this->args[i] = strcpy(this->args[i], args[i].c_str());
     }
+    //null terminated args
+    this->args[args.size()] = nullptr;
 
-    this->fd[0] = fd[0];
-    this->fd[1] = fd[1];
+    this->pipe_options = pipe_options;
 }
 
 void command::exec_command() {
-    pid = fork();
+    child_pid = fork();
 
-    if (pid < -1) {
+    if (child_pid < -1) {
         std::cout << "An error occurred" << std::endl;
-    } else if (pid == 0) {
-        std::cout << "Command executing" << std::endl;
-        if (fd[0] != 0) {
-            if (receiver) {
-                close(fd[1]);
-                dup2(0, fd[0]);
+    } else if (child_pid == 0) {
+        if (pipe_options.enabled) {
+            if (pipe_options.receiver) {
+//                close(pipe_options.ofd);
+//                std::cerr << exec << " " << "receiving to " << pipe_options.ifd << std::endl;
+                if(dup2(pipe_options.ifd, STDIN_FILENO) == -1) {
+                    std::cerr << "Dup3 error on receiver " << errno;
+                }
             } else {
-                close(fd[0]);
-                dup2(1, fd[1]);
+//                close(pipe_options.ifd);
+//                std::cerr << exec << " " << "sending to " << pipe_options.ofd << std::endl;
+                if(dup2(pipe_options.ofd, STDOUT_FILENO) == -1) {
+                    std::cerr << "Dup3 error on sender" << errno;
+                }
             }
         }
 
@@ -39,6 +47,13 @@ void command::exec_command() {
 }
 
 void command::wait_command() {
-    wait(&pid);
+    wait(&child_pid);
+}
+
+void command::close_pipes() {
+    if(pipe_options.enabled) {
+        close(pipe_options.ifd);
+        close(pipe_options.ofd);
+    }
 }
 
