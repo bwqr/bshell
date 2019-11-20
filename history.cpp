@@ -14,6 +14,12 @@ void history::push(const std::string &input) {
 
 void history::print() {
     for (int i = 0; i < size; ++i) {
-        std::cout << hist[(tail - size + i) % MAX_HIST] << std::endl;
+        auto index = (tail - size + i);
+
+        if(index < 0) {
+            index += MAX_HIST;
+        }
+
+        std::cout << (i + 1) << ". " << hist[index] << std::endl;
     }
 }

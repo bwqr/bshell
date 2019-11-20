@@ -35,17 +35,14 @@ int main(int argc, char **argv) {
 
     bool quit = false;
 
-    while (!quit) {
+    while (true) {
         print_line_prefix(get_user());
 
-        std::getline(std::cin, input);
+        if(!std::getline(std::cin, input) || input == "exit") {
+            break;
+        }
 
         save_hist(input);
-
-        if (input == "exit") {
-            quit = true;
-            continue;
-        }
 
         std::vector<struct pipe> pipes;
         commands = parse_commands(input, &pipes);
@@ -103,6 +100,7 @@ void close_pipes(const std::vector<struct pipe> &pipes) {
 
 std::vector<command> parse_commands(const std::string &input, std::vector<struct pipe> *pipes) {
     //Split
+    //TODO: error right here, words inside the quotes should not be divided
     std::istringstream iss(input);
     std::vector<std::string> words;
     std::copy(std::istream_iterator<std::string>(iss),
@@ -145,10 +143,10 @@ std::vector<command> parse_commands(const std::string &input, std::vector<struct
                     goto error;
                 }
 
-                int pfd;
+                int pfd = open(words[i].c_str(), O_WRONLY | O_CREAT | O_TRUNC,
+                               S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
-                if ((pfd = open(words[i].c_str(), O_WRONLY | O_CREAT | O_TRUNC,
-                                S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) == -1) {
+                if (pfd == -1) {
                     std::cerr << "File cannot be created " << words[i] << std::endl;
 
                     goto error;
@@ -166,14 +164,11 @@ std::vector<command> parse_commands(const std::string &input, std::vector<struct
         commands.emplace_back(command(command_string, args));
     }
 
-    goto success;
+    return commands;
 
     error:
     pipes->clear();
     return std::vector<command>();
-
-    success:
-    return commands;
 }
 
 void save_hist(const std::string &input) {

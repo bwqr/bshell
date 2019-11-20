@@ -36,7 +36,7 @@ void command::execute_command() {
 
     exec_argv[argv.size()] = nullptr;
 
-    execvp(exec.c_str(), exec_argv);
+    execvp(command.c_str(), exec_argv);
 }
 
 void command::set_ifd(const int &ifd) {
