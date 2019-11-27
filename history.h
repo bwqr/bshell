@@ -8,7 +8,8 @@ extern class history hist;
 
 class history {
 public:
-    explicit history();
+    explicit history() = default;
+    history(int n);
     void push(const std::string &input);
     void print();
 private:

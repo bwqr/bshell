@@ -1,15 +1,14 @@
 #include <iostream>
 #include "history.h"
-#include "defs.h"
 
-history::history() {
-    hist = std::vector<std::string>(MAX_HIST);
+history::history(int n) {
+    hist = std::vector<std::string>(n);
 }
 
 void history::push(const std::string &input) {
     hist[tail] = input;
-    tail = (tail + 1) % MAX_HIST;
-    size = std::min(MAX_HIST, size + 1);
+    tail = (tail + 1) % (int) hist.size();
+    size = std::min((int) hist.size(), size + 1);
 }
 
 void history::print() {
@@ -17,7 +16,7 @@ void history::print() {
         auto index = (tail - size + i);
 
         if(index < 0) {
-            index += MAX_HIST;
+            index += hist.size();
         }
 
         std::cout << (i + 1) << ". " << hist[index] << std::endl;

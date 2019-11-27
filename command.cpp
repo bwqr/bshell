@@ -47,7 +47,7 @@ void command::set_ifd(const int &ifd) {
 
 void command::set_ofd(const int &ofd) {
     if(dup2(ofd, STDOUT_FILENO) == -1) {
-        std::cerr << "Error while dup2 on set_ifd" <<std::endl;
+        std::cerr << "Error while dup2 on set_ofd" <<std::endl;
     }
 }
 

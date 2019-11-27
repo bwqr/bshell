@@ -1,15 +1,11 @@
 #include <iostream>
-#include "command.h"
-#include "history.h"
 #include <unistd.h>
-#include <sstream>
 #include <string>
-#include <algorithm>
-#include <iterator>
-#include <queue>
 #include <wait.h>
 #include <fcntl.h>
-#include <list>
+#include "command.h"
+#include "history.h"
+#include "defs.h"
 
 struct pipe {
     int ifd = STDIN_FILENO;
@@ -24,6 +20,8 @@ std::string get_user();
 
 std::vector<command> parse_commands(const std::string &input, std::vector<struct pipe> *pipes);
 
+std::vector<std::string> parse_words(const std::string &input);
+
 void save_hist(const std::string &input);
 
 void close_pipes(const std::vector<struct pipe> &pipes);
@@ -31,14 +29,14 @@ void close_pipes(const std::vector<struct pipe> &pipes);
 int main(int argc, char **argv) {
     std::string input;
     std::vector<command> commands;
-    hist = history();
+    hist = history(MAX_HIST);
 
-    bool quit = false;
+    auto user = get_user();
 
     while (true) {
-        print_line_prefix(get_user());
+        print_line_prefix(user);
 
-        if(!std::getline(std::cin, input) || input == "exit") {
+        if (!std::getline(std::cin, input) || input == "exit") {
             break;
         }
 
@@ -47,7 +45,7 @@ int main(int argc, char **argv) {
         std::vector<struct pipe> pipes;
         commands = parse_commands(input, &pipes);
 
-        for (ulong i = 0; i < commands.size(); i++) {
+        for (size_t i = 0; i < commands.size(); i++) {
             auto &command = commands[i];
 
             int pid = fork();
@@ -101,15 +99,17 @@ void close_pipes(const std::vector<struct pipe> &pipes) {
 std::vector<command> parse_commands(const std::string &input, std::vector<struct pipe> *pipes) {
     //Split
     //TODO: error right here, words inside the quotes should not be divided
-    std::istringstream iss(input);
-    std::vector<std::string> words;
-    std::copy(std::istream_iterator<std::string>(iss),
-              std::istream_iterator<std::string>(),
-              std::back_inserter(words));
+//    std::istringstream iss(input);
+//    std::vector<std::string> words;
+//    std::copy(std::istream_iterator<std::string>(iss),
+//              std::istream_iterator<std::string>(),
+//              std::back_inserter(words));
+
+    auto words = parse_words(input);
 
     std::vector<command> commands;
 
-    for (ulong i = 0; i < words.size(); ++i) {
+    for (size_t i = 0; i < words.size(); ++i) {
         std::string command_string = words[i];
 
         std::vector<std::string> args;
@@ -170,6 +170,56 @@ std::vector<command> parse_commands(const std::string &input, std::vector<struct
     pipes->clear();
     return std::vector<command>();
 }
+
+std::vector<std::string> parse_words(const std::string &input) {
+    std::vector<std::string> words;
+
+    std::string word;
+
+    auto prev_char = ' ';
+    auto size = input.size();
+
+    for (size_t i = 0; i < size; i++) {
+        auto ch = input[i];
+
+        if (ch == ' ' && prev_char == ' ') {
+            goto cont;
+        }
+
+        if (prev_char != '\\' && ch == '"') {
+
+            while (i < (size - 1)) {
+                i++;
+                prev_char = ch;
+                ch = input[i];
+
+                if (prev_char != '\\' && ch == '"') {
+                    break;
+                }
+                if (ch != '\\' || prev_char == '\\') {
+                    word += ch;
+                    ch = 0;
+                }
+            }
+        } else if (ch == ' ') {
+            words.push_back(word);
+            word = "";
+        } else if (ch != '\\' || prev_char == '\\') {
+            word += ch;
+            ch = 0;
+        }
+
+        cont:
+        prev_char = ch;
+    }
+
+    if (word.length() > 0) {
+        words.push_back(word);
+    }
+
+    return words;
+}
+
 
 void save_hist(const std::string &input) {
     hist.push(input);
