@@ -97,14 +97,6 @@ void close_pipes(const std::vector<struct pipe> &pipes) {
 }
 
 std::vector<command> parse_commands(const std::string &input, std::vector<struct pipe> *pipes) {
-    //Split
-    //TODO: error right here, words inside the quotes should not be divided
-//    std::istringstream iss(input);
-//    std::vector<std::string> words;
-//    std::copy(std::istream_iterator<std::string>(iss),
-//              std::istream_iterator<std::string>(),
-//              std::back_inserter(words));
-
     auto words = parse_words(input);
 
     std::vector<command> commands;
@@ -182,10 +174,12 @@ std::vector<std::string> parse_words(const std::string &input) {
     for (size_t i = 0; i < size; i++) {
         auto ch = input[i];
 
+        //Ignore multi spaces
         if (ch == ' ' && prev_char == ' ') {
             goto cont;
         }
 
+        //Beginning of quote
         if (prev_char != '\\' && ch == '"') {
 
             while (i < (size - 1)) {
@@ -193,18 +187,24 @@ std::vector<std::string> parse_words(const std::string &input) {
                 prev_char = ch;
                 ch = input[i];
 
+                //Ending the quote
                 if (prev_char != '\\' && ch == '"') {
                     break;
                 }
+                //Add char to word, ignore the single backslash, add it if occurred second time
                 if (ch != '\\' || prev_char == '\\') {
                     word += ch;
                     ch = 0;
                 }
             }
-        } else if (ch == ' ') {
+        }
+            //End of word
+        else if (ch == ' ') {
             words.push_back(word);
             word = "";
-        } else if (ch != '\\' || prev_char == '\\') {
+        }
+        //Add char to word, ignore the single backslash, add it if occurred second time
+        else if (ch != '\\' || prev_char == '\\') {
             word += ch;
             ch = 0;
         }
